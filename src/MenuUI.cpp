@@ -64,37 +64,44 @@ void MenuUI::moveDown() {
 
 void MenuUI::drawMenu() {
   display->clearDisplay();
-  display->setTextSize(2);   // 16-pixel height
+  display->setTextSize(2);   // Each char ~16px high
   display->setTextColor(SSD1306_WHITE);
-  display->setFont();        // Use default font
+  display->setFont();        // Default font (non-bitmap)
+
+  const uint8_t itemHeight = 16;
+  const uint8_t paddingY = 1;  // safer vertical offset
 
   for (uint8_t i = 0; i < 2; ++i) {
     uint8_t itemIndex = topItem + i;
     if (itemIndex >= itemCount) break;
 
-    uint8_t y = i * 16;  // 2 lines, 16 pixels each (2 * 16 = 32)
+    uint8_t y = i * itemHeight;
 
+    // Draw selector background
     if (itemIndex == selectedItem) {
-      display->fillRect(0, y, 128, 16, SSD1306_WHITE);
+      display->fillRect(0, y, 128, itemHeight, SSD1306_WHITE);
       display->setTextColor(SSD1306_BLACK);
+      display->setCursor(4, y + paddingY);     // padding from left + top
+      display->setCursor(16, y + paddingY);    // item text
+      display->print(menuItems[itemIndex]);
     } else {
       display->setTextColor(SSD1306_WHITE);
+      display->setCursor(16, y + paddingY);
+      display->print(menuItems[itemIndex]);
     }
-
-    display->setCursor(4, y + 1);  // small padding from left/top
-    display->print(menuItems[itemIndex]);
   }
 
-  // Scroll arrows (optional)
+  // Scroll arrows (always visible within bounds)
   if (topItem > 0) {
-    display->fillTriangle(124, 2, 127, 2, 125, 0, SSD1306_WHITE);  // up arrow
+    display->fillTriangle(122, 1, 125, 4, 128, 1, SSD1306_WHITE);  // ↑
   }
   if (topItem + 2 < itemCount) {
-    display->fillTriangle(124, 30, 127, 30, 125, 32, SSD1306_WHITE);  // down arrow
+    display->fillTriangle(122, 30, 125, 27, 128, 30, SSD1306_WHITE);  // ↓
   }
 
   display->display();
 }
+
 
 void MenuUI::beep() {
   if (buzzerPin >= 0) {
