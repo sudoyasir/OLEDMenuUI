@@ -62,10 +62,17 @@ You can customize:
 
 ## ✅ To-Do / Issues
 
-* [ ] Fix strange horizontal line on screen
+* [x] Fix strange horizontal line on screen
 * [ ] Add back button support
 * [ ] Port to other microcontrollers (ESP32, ESP8266, etc.)
 * [ ] Improve font auto-scaling for different screen sizes
+
+## 📁 Examples
+
+This library comes with built-in examples.
+
+- `BasicMenu`: A minimal OLED menu with scrolling, selection, and back functionality.
+
 
 ## 📚 Dependencies
 
