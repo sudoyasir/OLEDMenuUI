@@ -63,7 +63,7 @@ You can customize:
 ## ✅ To-Do / Issues
 
 * [x] Fix strange horizontal line on screen
-* [ ] Add back button support
+* [x] Add back button support
 * [ ] Port to other microcontrollers (ESP32, ESP8266, etc.)
 * [ ] Improve font auto-scaling for different screen sizes
 
