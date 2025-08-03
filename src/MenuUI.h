@@ -30,7 +30,7 @@ class MenuUI {
 
     void moveUp();
     void moveDown();
-    void beep();
+    void beep(int type = 0);
 };
 
 #endif

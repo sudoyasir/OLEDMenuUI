@@ -30,17 +30,17 @@ void MenuUI::setCallback(void (*cb)(int)) {
 
 void MenuUI::update() {
   if (digitalRead(buttonUpPin) == LOW) {
-    beep();
+    beep(0); // 0 for up beep
     moveUp();
     delay(200);
   }
   if (digitalRead(buttonDownPin) == LOW) {
-    beep();
+    beep(0); // 0 for down beep
     moveDown();
     delay(200);
   }
   if (digitalRead(buttonSelectPin) == LOW) {
-    beep();
+    beep(1); // 1 for select beep
     if (callback) callback(selectedItem);
     delay(200);
   }
@@ -103,10 +103,15 @@ void MenuUI::drawMenu() {
 }
 
 
-void MenuUI::beep() {
+void MenuUI::beep(int type) {
   if (buzzerPin >= 0) {
-    tone(buzzerPin, 1000, 50);  // 1 kHz, 50 ms
+    if (type == 0) {
+      tone(buzzerPin, 1000, 50); // Up/down beep
+    } else if (type == 1) {
+      tone(buzzerPin, 1500, 100); // Select beep (higher pitch, longer)
+    }
     delay(60);
     noTone(buzzerPin);
   }
 }
+
