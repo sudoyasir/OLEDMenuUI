@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OLEDMenuUI – OLED Menu Library</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      color: #333;
+      margin: 0;
+      padding: 2rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1, h2 {
+      color: #222;
+    }
+    code {
+      background: #eee;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    pre {
+      background: #eee;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 4px;
+    }
+    a {
+      color: #007acc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .screenshot {
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      margin: 1rem 0;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>OLEDMenuUI</h1>
+  <p><strong>OLEDMenuUI</strong> is a lightweight, customizable, and Arduino-friendly UI library designed for SSD1306 OLED displays. It supports vertical menus, button inputs, buzzer feedback, and is easy to extend across multiple microcontrollers.</p>
+
+  <h2>✨ Features</h2>
+  <ul>
+    <li>Scroll-based menu with selector</li>
+    <li>Clean font rendering using Adafruit GFX</li>
+    <li>Supports external buzzer beeps</li>
+    <li>Padding, arrow indicators, and item highlighting</li>
+    <li>Designed for 128x32 OLED (but adaptable to others)</li>
+  </ul>
+
+  <h2>📷 Demo</h2>
+  <p><em>Screenshots/GIF will be added soon.</em></p>
+  <img src="menu-demo.gif" alt="Menu Demo Screenshot" class="screenshot">
+
+  <h2>🚀 Getting Started</h2>
+  <pre><code>#include &lt;MenuUI.h&gt;
+MenuUI menu(&display, upPin, downPin, selectPin, buzzerPin);
+menu.begin();
+menu.setMenuItems(items, itemCount);</code></pre>
+
+  <h2>📁 Repository</h2>
+  <p>Check out the full code and contribute on GitHub:</p>
+  <p><a href="https://github.com/sudoyasir/OLEDMenuUI">github.com/sudoyasir/OLEDMenuUI</a></p>
+
+  <h2>🛠 Roadmap</h2>
+  <ul>
+    <li>Support back button navigation</li>
+    <li>Fix known rendering bugs (horizontal line issue)</li>
+    <li>Make portable for ESP32, RP2040, and more</li>
+    <li>Demo sketch and full documentation</li>
+  </ul>
+
+  <footer style="margin-top: 3rem; font-size: 0.9rem; color: #777;">
+    &copy; 2025 Yasir Nawaz · Open-source under MIT License
+  </footer>
+
+</body>
+</html>
