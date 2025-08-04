@@ -14,6 +14,16 @@
 - ✅ Modular design with callbacks
 - ✅ Designed for SSD1306 (128x32) displays
 
+## ✅ Supported Boards
+
+| Board         | OLED Support | EEPROM Support | Tested | Notes |
+|---------------|--------------|----------------|--------|-------|
+| Arduino Uno   | ✅            | ✅              | ✅      | Default test board |
+| Arduino Nano  | ✅            | ✅              | ✅      | Same pinout as Uno |
+| Arduino Mega  | ✅            | ✅              | ✅      | Use pins 20 (SDA), 21 (SCL) |
+| ESP8266 (NodeMCU) | ✅       | ⚠️ Partial      | ✅      | Use `EEPROM.begin()` and `EEPROM.commit()` |
+| ESP32         | ✅            | ✅              | ✅      | Use pins 21 (SDA), 22 (SCL) by default |
+| Arduino Leonardo | ✅        | ✅              | 🚫      | Not tested yet |
 
 ## 🧱 Requirements
 
