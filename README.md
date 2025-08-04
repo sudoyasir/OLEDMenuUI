@@ -11,6 +11,17 @@ A lightweight, customizable menu system for Arduino projects using SSD1306 OLED 
 * Buzzer feedback support on navigation and selection
 * Easy to extend: works with 4 buttons (Up, Down, Select, Back)
 
+## ✅ Supported Boards
+
+| Board         | OLED Support | EEPROM Support | Tested | Notes |
+|---------------|--------------|----------------|--------|-------|
+| Arduino Uno   | ✅            | ✅              | ✅      | Default test board |
+| Arduino Nano  | ✅            | ✅              | ✅      | Same pinout as Uno |
+| Arduino Mega  | ✅            | ✅              | ✅      | Use pins 20 (SDA), 21 (SCL) |
+| ESP8266 (NodeMCU) | ✅       | ⚠️ Partial      | ✅      | Use `EEPROM.begin()` and `EEPROM.commit()` |
+| ESP32         | ✅            | ✅              | ✅      | Use pins 21 (SDA), 22 (SCL) by default |
+| Arduino Leonardo | ✅        | ✅              | 🚫      | Not tested yet |
+
 ## 📦 Installation
 
 1. Clone or download this repository.
