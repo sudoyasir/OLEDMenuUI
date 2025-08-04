@@ -89,7 +89,7 @@ void onMainSelect(int index) {
       display.setCursor(0, 0);
       display.println("OLED MenuUI v1");
       display.setCursor(0, 16);
-      display.println("@sudoyasir"); // You can change or remove it
+      display.println("@sudoyasir"); //You can change or remove it
       display.display();
 
       while (digitalRead(BUTTON_BACK) == HIGH);  // Wait for back press
