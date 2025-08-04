@@ -9,7 +9,7 @@ A lightweight, customizable menu system for Arduino projects using SSD1306 OLED 
 * Shows 2 menu items per screen with scroll indicators
 * Highlighted the selected item with a rounded rectangle
 * Buzzer feedback support on navigation and selection
-* Easy to extend: works with 3 buttons (Up, Down, Select)
+* Easy to extend: works with 4 buttons (Up, Down, Select, Back)
 
 ## 📦 Installation
 
@@ -33,7 +33,7 @@ Adafruit_SSD1306 display(128, 32, &Wire, -1);
 
 const char* menuItems[] = {"Item 1", "Item 2", "Item 3", "Item 4"};
 
-MenuUI menu(&display, 2, 3, 4, 5);  // up, down, select, buzzer pins
+MenuUI menu(&display, 2, 3, 4, 5, 6);  // up, down, select, back, buzzer pins
 
 void onMenuSelect(int index) {
   // Do something with index
@@ -65,7 +65,6 @@ You can customize:
 * [x] Fix strange horizontal line on screen
 * [x] Add back button support
 * [ ] Port to other microcontrollers (ESP32, ESP8266, etc.)
-* [ ] Improve font auto-scaling for different screen sizes
 
 ## 📁 Examples
 
