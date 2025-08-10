@@ -1,9 +1,11 @@
 #include "MenuUI.h"
 
+
 MenuUI::MenuUI(Adafruit_SSD1306 *disp, int up, int down, int select, int back, int buzzer)
     : display(disp), buttonUpPin(up), buttonDownPin(down), buttonSelectPin(select),
       buttonBackPin(back), buzzerPin(buzzer), selectedItem(0), topItem(0), itemCount(0),
-      menuItems(nullptr), callback(nullptr), backCallback(nullptr), beepEnabled(true) {}
+      menuItems(nullptr), callback(nullptr), backCallback(nullptr), beepEnabled(true),
+      rootMenu(nullptr), currentMenu(nullptr) {}
 
 void MenuUI::begin()
 {
@@ -18,16 +20,103 @@ void MenuUI::begin()
   display->display();
 }
 
+
 void MenuUI::setMenuItems(const char **items, int count, bool resetSelection)
 {
+  // Legacy static array support
   menuItems = items;
   itemCount = count;
+  rootMenu = nullptr;
+  currentMenu = nullptr;
   if (resetSelection)
   {
     selectedItem = 0;
     topItem = 0;
   }
-  drawMenu();
+  drawMenuStatic();
+}
+
+// --- Dynamic menu API ---
+MenuUI::MenuItem* MenuUI::addMenuItem(const char* label, void (*action)(), MenuItem* parent) {
+    MenuItem* item = new MenuItem;
+    item->label = label;
+    item->action = action;
+    item->children = nullptr;
+    item->next = nullptr;
+    item->parent = parent;
+    if (!parent) {
+        // Root menu
+        rootMenu = item;
+        currentMenu = rootMenu;
+    } else {
+        // Add as last child
+        if (!parent->children) {
+            parent->children = item;
+        } else {
+            MenuItem* sibling = parent->children;
+            while (sibling->next) sibling = sibling->next;
+            sibling->next = item;
+        }
+    }
+    return item;
+}
+
+void MenuUI::removeMenuItem(MenuItem* item) {
+    if (!item || !item->parent) return;
+    MenuItem* parent = item->parent;
+    MenuItem* prev = nullptr;
+    MenuItem* cur = parent->children;
+    while (cur) {
+        if (cur == item) {
+            if (prev) prev->next = cur->next;
+            else parent->children = cur->next;
+            // Recursively delete children
+            MenuItem* child = cur->children;
+            while (child) {
+                MenuItem* nextChild = child->next;
+                removeMenuItem(child);
+                child = nextChild;
+            }
+            delete cur;
+            break;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+}
+
+void MenuUI::clearMenu(MenuItem* parent) {
+    if (!parent) parent = rootMenu;
+    if (!parent) return;
+    MenuItem* child = parent->children;
+    while (child) {
+        MenuItem* nextChild = child->next;
+        removeMenuItem(child);
+        child = nextChild;
+    }
+    parent->children = nullptr;
+    if (parent == rootMenu) {
+        selectedItem = 0;
+        topItem = 0;
+        currentMenu = rootMenu;
+    }
+}
+
+void MenuUI::enterSubMenu(MenuItem* submenu) {
+    if (!submenu || !submenu->children) return;
+    currentMenu = submenu;
+    selectedItem = 0;
+    topItem = 0;
+    drawMenuDynamic();
+}
+
+void MenuUI::backToParent() {
+    if (currentMenu && currentMenu->parent) {
+        currentMenu = currentMenu->parent;
+        selectedItem = 0;
+        topItem = 0;
+        drawMenuDynamic();
+    }
 }
 
 void MenuUI::setCallback(void (*cb)(int))
@@ -51,33 +140,85 @@ void MenuUI::setBrightnessLevel(uint8_t level)
   display->ssd1306_command(level);
 }
 
+
+
 void MenuUI::update()
 {
-  if (digitalRead(buttonUpPin) == LOW)
-  {
-    beep();
-    moveUp();
-    delay(200);
-  }
-  if (digitalRead(buttonDownPin) == LOW)
-  {
-    beep();
-    moveDown();
-    delay(200);
-  }
-  if (digitalRead(buttonSelectPin) == LOW)
-  {
-    beep(1);
-    if (callback)
-      callback(selectedItem);
-    delay(200);
-  }
-  if (digitalRead(buttonBackPin) == LOW)
-  {
-    beep();
-    if (backCallback)
-      backCallback();
-    delay(200);
+  if (rootMenu && currentMenu) {
+    // Dynamic menu mode
+    int itemCount = 0;
+    MenuItem* child = currentMenu->children;
+    while (child) {
+      itemCount++;
+      child = child->next;
+    }
+    if (digitalRead(buttonUpPin) == LOW) {
+      beep();
+      if (selectedItem > 0) {
+        selectedItem--;
+        if (selectedItem < topItem) topItem--;
+        drawMenuDynamic();
+      }
+      delay(200);
+    }
+    if (digitalRead(buttonDownPin) == LOW) {
+      beep();
+      if (selectedItem < itemCount - 1) {
+        selectedItem++;
+        if (selectedItem >= topItem + maxVisibleItems) topItem++;
+        drawMenuDynamic();
+      }
+      delay(200);
+    }
+    if (digitalRead(buttonSelectPin) == LOW) {
+      beep(1);
+      if (itemCount > 0) {
+        int idx = 0;
+        MenuItem* sel = currentMenu->children;
+        while (sel && idx < selectedItem) { sel = sel->next; idx++; }
+        if (sel) {
+          if (sel->children) {
+            enterSubMenu(sel);
+          } else if (sel->action) {
+            sel->action();
+          }
+        }
+      }
+      delay(200);
+    }
+    if (digitalRead(buttonBackPin) == LOW) {
+      beep();
+      backToParent();
+      delay(200);
+    }
+  } else {
+    // Legacy static menu mode
+    if (digitalRead(buttonUpPin) == LOW)
+    {
+      beep();
+      moveUp();
+      delay(200);
+    }
+    if (digitalRead(buttonDownPin) == LOW)
+    {
+      beep();
+      moveDown();
+      delay(200);
+    }
+    if (digitalRead(buttonSelectPin) == LOW)
+    {
+      beep(1);
+      if (callback)
+        callback(selectedItem);
+      delay(200);
+    }
+    if (digitalRead(buttonBackPin) == LOW)
+    {
+      beep();
+      if (backCallback)
+        backCallback();
+      delay(200);
+    }
   }
 }
 
@@ -103,8 +244,13 @@ void MenuUI::moveDown()
   }
 }
 
-void MenuUI::drawMenu()
-{
+
+void MenuUI::drawMenu() {
+  if (rootMenu && currentMenu) drawMenuDynamic();
+  else drawMenuStatic();
+}
+
+void MenuUI::drawMenuStatic() {
   display->clearDisplay();
   display->setTextSize(1);
   display->setTextColor(SSD1306_WHITE);
@@ -134,6 +280,62 @@ void MenuUI::drawMenu()
 
     display->setCursor(paddingX, y + paddingY);
     display->print(menuItems[index]);
+  }
+
+  // Arrows
+  if (topItem > 0)
+    display->fillTriangle(120, 2, 125, 2, 122, 0, SSD1306_WHITE);
+  if (topItem + maxVisibleItems < itemCount)
+    display->fillTriangle(120, 30, 125, 30, 122, 32, SSD1306_WHITE);
+
+  display->display();
+}
+
+
+void MenuUI::drawMenuDynamic() {
+  display->clearDisplay();
+  display->setTextSize(1);
+  display->setTextColor(SSD1306_WHITE);
+
+  int paddingX = 6;
+  int paddingY = 4;
+  int selectorHeight = 16;
+  int cornerRadius = 4;
+  int itemCount = 0;
+  MenuItem* child = currentMenu->children;
+  while (child) {
+    itemCount++;
+    child = child->next;
+  }
+
+  for (int i = 0; i < maxVisibleItems; ++i)
+  {
+    int index = topItem + i;
+    if (index >= itemCount)
+      break;
+
+    int y = i * selectorHeight;
+    int idx = 0;
+    MenuItem* item = currentMenu->children;
+    while (item && idx < index) { item = item->next; idx++; }
+    if (!item) break;
+
+    if (index == selectedItem)
+    {
+      display->fillRoundRect(0, y, display->width(), selectorHeight, cornerRadius, SSD1306_WHITE);
+      display->setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+    }
+    else
+    {
+      display->setTextColor(SSD1306_WHITE);
+    }
+
+    display->setCursor(paddingX, y + paddingY);
+    display->print(item->label);
+    if (item->children) {
+      display->setCursor(display->width() - 12, y + paddingY);
+      display->print(">>");
+    }
   }
 
   // Arrows

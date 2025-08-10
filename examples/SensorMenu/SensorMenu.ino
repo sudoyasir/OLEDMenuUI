@@ -1,39 +1,44 @@
+
+// SensorMenu Example for OLEDMenuUI Library
+// Demonstrates dynamic and nested menu usage with sensor readings and settings
+// Author: Yasir N. | https://github.com/sudoyasir/OLEDMenuUI
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <DHT.h>
 #include <EEPROM.h>
 #include "MenuUI.h"
 
-// OLED configuration
+// OLED display configuration
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Pins
-#define BUTTON_UP     2
-#define BUTTON_DOWN   3
-#define BUTTON_SELECT 4
-#define BUTTON_BACK   5
-#define BUZZER_PIN    6
-#define DHTPIN        7
-#define DHTTYPE       DHT11
-#define TRIG_PIN      8
-#define ECHO_PIN      9
+// Pin assignments
+#define BUTTON_UP     2      // Up button
+#define BUTTON_DOWN   3      // Down button
+#define BUTTON_SELECT 4      // Select button
+#define BUTTON_BACK   5      // Back button
+#define BUZZER_PIN    6      // Buzzer output
+#define DHTPIN        7      // DHT sensor pin
+#define DHTTYPE       DHT11  // DHT sensor type
+#define TRIG_PIN      8      // Ultrasonic trigger
+#define ECHO_PIN      9      // Ultrasonic echo
 
-// Components
-DHT dht(DHTPIN, DHTTYPE);
-MenuUI menu(&display, BUTTON_UP, BUTTON_DOWN, BUTTON_SELECT, BUTTON_BACK, BUZZER_PIN);
+// Hardware components
+DHT dht(DHTPIN, DHTTYPE); // Temperature/humidity sensor
+MenuUI menu(&display, BUTTON_UP, BUTTON_DOWN, BUTTON_SELECT, BUTTON_BACK, BUZZER_PIN); // Menu system
 
-// EEPROM addresses
+// EEPROM addresses for persistent settings
 #define EEPROM_SOUND_ADDR 0
 #define EEPROM_BRIGHT_ADDR 1
 
-// State tracking
+// State variables for settings
 bool soundOn = true;
 bool brightnessHigh = true;
 
-// Menu state
+// Tracks which screen is currently displayed
 enum ScreenState {
   SCREEN_MENU,
   SCREEN_TEMP,
@@ -45,35 +50,71 @@ ScreenState currentScreen = SCREEN_MENU;
 unsigned long lastUpdate = 0;
 
 
-// Menu items
-const char* mainMenu[] = {
-  "Sensors",
-  "Settings",
-  "About"
-};
 
+// (Legacy) static settings menu for backward compatibility
 const char* settingsMenu[] = {
   "Sound: ON",
   "Brightness: HIGH"
 };
 
-// Dynamic sensors submenu
-const char* sensorsMenu[3];
-int sensorsCount = 0;
+MenuUI::MenuItem* settingsMenuItem = nullptr;
 
-void updateSensorsMenu() {
-  sensorsCount = 0;
-  sensorsMenu[sensorsCount++] = "Temperature";
-  sensorsMenu[sensorsCount++] = "Humidity";
-  sensorsMenu[sensorsCount++] = "Distance";
-  // In a real scenario, you could detect available sensors and add them conditionally
+// Dynamic menu item pointers for runtime menu structure
+MenuUI::MenuItem* rootMenu = nullptr;
+MenuUI::MenuItem* sensorsMenu = nullptr;
+MenuUI::MenuItem* aboutMenuItem = nullptr;
+MenuUI::MenuItem* soundMenuItem = nullptr;
+MenuUI::MenuItem* brightnessMenuItem = nullptr;
+
+// Menu action callbacks for sensor and about screens
+void showTemp() { currentScreen = SCREEN_TEMP; lastUpdate = 0; }
+void showHumid() { currentScreen = SCREEN_HUMID; lastUpdate = 0; }
+void showDist() { currentScreen = SCREEN_DIST; lastUpdate = 0; }
+void showAbout() { currentScreen = SCREEN_ABOUT; lastUpdate = 0; }
+
+// Toggle sound setting and update menu label
+void toggleSound() {
+  soundOn = !soundOn;
+  EEPROM.write(EEPROM_SOUND_ADDR, soundOn ? 1 : 0);
+  menu.setBeepEnabled(soundOn);
+  soundMenuItem->label = soundOn ? "Sound: ON" : "Sound: OFF";
+  menu.drawMenu();
 }
 
+// Toggle brightness setting and update menu label
+void toggleBrightness() {
+  brightnessHigh = !brightnessHigh;
+  EEPROM.write(EEPROM_BRIGHT_ADDR, brightnessHigh ? 1 : 0);
+  menu.setBrightnessLevel(brightnessHigh ? 255 : 10);
+  brightnessMenuItem->label = brightnessHigh ? "Brightness: HIGH" : "Brightness: LOW";
+  menu.drawMenu();
+}
+
+// Build the dynamic menu structure at runtime
+void buildDynamicMenu() {
+  menu.clearMenu();
+  rootMenu = menu.addMenuItem("ROOT");
+  // Sensors submenu
+  sensorsMenu = menu.addMenuItem("Sensors", nullptr, rootMenu);
+  menu.addMenuItem("Temperature", showTemp, sensorsMenu);
+  menu.addMenuItem("Humidity", showHumid, sensorsMenu);
+  menu.addMenuItem("Distance", showDist, sensorsMenu);
+  // Settings submenu
+  settingsMenuItem = menu.addMenuItem("Settings", nullptr, rootMenu);
+  soundMenuItem = menu.addMenuItem(soundOn ? "Sound: ON" : "Sound: OFF", toggleSound, settingsMenuItem);
+  brightnessMenuItem = menu.addMenuItem(brightnessHigh ? "Brightness: HIGH" : "Brightness: LOW", toggleBrightness, settingsMenuItem);
+  // About
+  aboutMenuItem = menu.addMenuItem("About", showAbout, rootMenu);
+  menu.enterSubMenu(rootMenu);
+}
+
+// (Legacy) update static settings menu labels
 void updateSettingsMenuLabels() {
   settingsMenu[0] = soundOn ? "Sound: ON" : "Sound: OFF";
   settingsMenu[1] = brightnessHigh ? "Brightness: HIGH" : "Brightness: LOW";
 }
 
+// Arduino setup: initialize hardware, settings, and menu
 void setup() {
   Serial.begin(9600);
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -81,7 +122,7 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
-  // Read EEPROM settings
+  // Load settings from EEPROM
   soundOn = EEPROM.read(EEPROM_SOUND_ADDR) == 1;
   brightnessHigh = EEPROM.read(EEPROM_BRIGHT_ADDR) == 1;
 
@@ -91,24 +132,24 @@ void setup() {
 
   menu.begin();
   updateSettingsMenuLabels();
-  menu.setMenuItems(mainMenu, 3);
-  menu.setCallback(onMainSelect);
-  menu.setBackCallback(nullptr);
+  buildDynamicMenu();
 }
 
+// Arduino main loop: handle menu and sensor screens
 void loop() {
   if (currentScreen == SCREEN_MENU) {
     menu.update();
   } else {
     updateScreen();
     if (digitalRead(BUTTON_BACK) == LOW) {
-      delay(200); // simple debounce
-      backToMain();
+      delay(200); // Debounce
+      menu.enterSubMenu(rootMenu); // Return to main menu
       currentScreen = SCREEN_MENU;
     }
   }
 }
 
+// Draw the current sensor or about screen
 void updateScreen() {
   unsigned long now = millis();
   if (now - lastUpdate < 1000) return;
@@ -161,52 +202,8 @@ void updateScreen() {
   display.display();
 }
 
-void backToMain() {
-  updateSettingsMenuLabels();
-  menu.setMenuItems(mainMenu, 3, false);
-  menu.setCallback(onMainSelect);
-  menu.setBackCallback(nullptr);
-}
 
-void backToSettings() {
-  updateSettingsMenuLabels();
-  menu.setMenuItems(settingsMenu, 2, false);
-  menu.setCallback(onSettingsSelect);
-  menu.setBackCallback(backToMain);
-}
-
-void onMainSelect(int index) {
-  switch (index) {
-    case 0: // Sensors submenu
-      updateSensorsMenu();
-      menu.setMenuItems(sensorsMenu, sensorsCount);
-      menu.setCallback(onSensorsSelect);
-      menu.setBackCallback(backToMain);
-      break;
-    case 1: // Settings
-      updateSettingsMenuLabels();
-      menu.setMenuItems(settingsMenu, 2);
-      menu.setCallback(onSettingsSelect);
-      menu.setBackCallback(backToMain);
-      break;
-    case 2: // About
-      currentScreen = SCREEN_ABOUT;
-      break;
-  }
-  lastUpdate = 0; // force refresh
-}
-
-void onSensorsSelect(int index) {
-  // Handle dynamic sensor selection
-  if (strcmp(sensorsMenu[index], "Temperature") == 0) {
-    currentScreen = SCREEN_TEMP;
-  } else if (strcmp(sensorsMenu[index], "Humidity") == 0) {
-    currentScreen = SCREEN_HUMID;
-  } else if (strcmp(sensorsMenu[index], "Distance") == 0) {
-    currentScreen = SCREEN_DIST;
-  }
-  lastUpdate = 0;
-}
+// No longer needed: backToMain, backToSettings, onMainSelect, onSensorsSelect
 
 void onSettingsSelect(int index) {
   if (index == 0) {
@@ -221,3 +218,11 @@ void onSettingsSelect(int index) {
   updateSettingsMenuLabels();
   menu.setMenuItems(settingsMenu, 2, false);
 }
+
+struct MenuItem {
+    const char* label;
+    void (*action)();
+    MenuItem* children;
+    MenuItem* next;      // Next sibling
+    MenuItem* parent;
+};
