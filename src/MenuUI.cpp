@@ -1,10 +1,21 @@
 #include "MenuUI.h"
-
-
-MenuUI::MenuUI(Adafruit_SSD1306 *disp, int up, int down, int select, int back, int buzzer)
-    : display(disp), buttonUpPin(up), buttonDownPin(down), buttonSelectPin(select),
-      buttonBackPin(back), buzzerPin(buzzer), selectedItem(0), topItem(0), itemCount(0),
-      menuItems(nullptr), callback(nullptr), backCallback(nullptr), beepEnabled(true),
+/*
+ * MenuUI.cpp - OLED Menu UI Library for Arduino
+ * Author: Yasir N. | https://github.com/sudoyasir/OLEDMenuUI
+ *
+ * MIT License
+ *
+ * This file implements the MenuUI class, providing both static and dynamic menu support
+ * for Arduino projects using SSD1306 OLED displays. The dynamic menu system uses C-style
+ * linked lists and function pointers for maximum compatibility with AVR-based boards.
+ *
+ * Features:
+ *   - Dynamic creation and deletion of menu items and submenus at runtime
+ *   - Nested submenus with unlimited depth (limited by memory)
+ *   - Static array-based menu support for legacy code
+ *   - Simple API for menu navigation and action callbacks
+ *   - Optional beep and brightness control
+ */
       rootMenu(nullptr), currentMenu(nullptr) {}
 
 void MenuUI::begin()
@@ -23,7 +34,9 @@ void MenuUI::begin()
 
 void MenuUI::setMenuItems(const char **items, int count, bool resetSelection)
 {
-  // Legacy static array support
+// -----------------------------------------------------------------------------
+// Legacy static array support (for backward compatibility)
+// -----------------------------------------------------------------------------
   menuItems = items;
   itemCount = count;
   rootMenu = nullptr;
@@ -36,7 +49,9 @@ void MenuUI::setMenuItems(const char **items, int count, bool resetSelection)
   drawMenuStatic();
 }
 
-// --- Dynamic menu API ---
+// -----------------------------------------------------------------------------
+// Dynamic menu API implementation
+// -----------------------------------------------------------------------------
 MenuUI::MenuItem* MenuUI::addMenuItem(const char* label, void (*action)(), MenuItem* parent) {
     MenuItem* item = new MenuItem;
     item->label = label;
@@ -45,11 +60,11 @@ MenuUI::MenuItem* MenuUI::addMenuItem(const char* label, void (*action)(), MenuI
     item->next = nullptr;
     item->parent = parent;
     if (!parent) {
-        // Root menu
+        // If no parent, this is the root menu
         rootMenu = item;
         currentMenu = rootMenu;
     } else {
-        // Add as last child
+        // Add as last child of the parent menu
         if (!parent->children) {
             parent->children = item;
         } else {
@@ -70,7 +85,7 @@ void MenuUI::removeMenuItem(MenuItem* item) {
         if (cur == item) {
             if (prev) prev->next = cur->next;
             else parent->children = cur->next;
-            // Recursively delete children
+            // Recursively delete all children of this menu item
             MenuItem* child = cur->children;
             while (child) {
                 MenuItem* nextChild = child->next;
@@ -145,7 +160,7 @@ void MenuUI::setBrightnessLevel(uint8_t level)
 void MenuUI::update()
 {
   if (rootMenu && currentMenu) {
-    // Dynamic menu mode
+    // Dynamic menu mode: traverse linked list structure
     int itemCount = 0;
     MenuItem* child = currentMenu->children;
     while (child) {
@@ -192,7 +207,7 @@ void MenuUI::update()
       delay(200);
     }
   } else {
-    // Legacy static menu mode
+    // Legacy static menu mode: use static array
     if (digitalRead(buttonUpPin) == LOW)
     {
       beep();
@@ -282,7 +297,7 @@ void MenuUI::drawMenuStatic() {
     display->print(menuItems[index]);
   }
 
-  // Arrows
+  // Draw up/down arrows for menu navigation
   if (topItem > 0)
     display->fillTriangle(120, 2, 125, 2, 122, 0, SSD1306_WHITE);
   if (topItem + maxVisibleItems < itemCount)
@@ -338,7 +353,7 @@ void MenuUI::drawMenuDynamic() {
     }
   }
 
-  // Arrows
+  // Draw up/down arrows for menu navigation
   if (topItem > 0)
     display->fillTriangle(120, 2, 125, 2, 122, 0, SSD1306_WHITE);
   if (topItem + maxVisibleItems < itemCount)

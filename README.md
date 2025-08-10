@@ -1,11 +1,12 @@
 # OLEDMenuUI
 
-**OLEDMenuUI** is an Arduino library for creating interactive, scrollable menus on SSD1306 OLED displays using physical buttons. It supports nested submenus, sensor data display, EEPROM-persistent settings, and UI features like rounded selection indicators.
+**OLEDMenuUI** is an Arduino library for creating interactive, scrollable menus on SSD1306 OLED displays using physical buttons. It now supports **dynamic (runtime) menu creation and deletion**, unlimited nested submenus, sensor data display, EEPROM-persistent settings, and UI features like rounded selection indicators. The library is fully compatible with Arduino Uno and other AVR boards (no STL required).
 
-![OLED Menu UI Screenshot](https://your-image-link-if-any.com)
+✨ Features
 
-## ✨ Features
-
+- ✅ **Dynamic (runtime) menu and submenu creation**
+- ✅ Unlimited nested submenus (C-style linked lists, no STL)
+- ✅ Add/remove menu items at runtime
 - ✅ Scrollable menus with arrow navigation
 - ✅ Support for Up, Down, Select, and Back buttons
 - ✅ EEPROM-persistent **Sound** and **Brightness** settings
@@ -93,41 +94,70 @@ DHT dht(DHTPIN, DHT11);
 #define ECHO_PIN 9
 ```
 
-## 📁 Example Usage
+
+## 📁 Example Usage (Dynamic Menu API)
 
 A full example is included in `examples/SensorMenu/SensorMenu.ino`.
 
-### Main Menu Items
-
-* Temperature (from DHT11)
-* Humidity (from DHT11)
-* Distance (from HC-SR04)
-* Settings (submenu)
-
-  * Sound: ON / OFF
-  * Brightness: HIGH / LOW
-* About
-
-### Example Menu Callback
+### Dynamic Menu Creation Example
 
 ```cpp
-void onMainSelect(int index) {
-  if (index == 0) showTemperature();
-  else if (index == 1) showHumidity();
-  else if (index == 2) showDistance();
-  else if (index == 3) openSettingsMenu();
-  else if (index == 4) showAbout();
+// Build the dynamic menu structure at runtime
+void buildDynamicMenu() {
+  menu.clearMenu();
+  MenuUI::MenuItem* rootMenu = menu.addMenuItem("ROOT");
+  // Sensors submenu
+  MenuUI::MenuItem* sensorsMenu = menu.addMenuItem("Sensors", nullptr, rootMenu);
+  menu.addMenuItem("Temperature", showTemp, sensorsMenu);
+  menu.addMenuItem("Humidity", showHumid, sensorsMenu);
+  menu.addMenuItem("Distance", showDist, sensorsMenu);
+  // Settings submenu
+  MenuUI::MenuItem* settingsMenu = menu.addMenuItem("Settings", nullptr, rootMenu);
+  menu.addMenuItem(soundOn ? "Sound: ON" : "Sound: OFF", toggleSound, settingsMenu);
+  menu.addMenuItem(brightnessHigh ? "Brightness: HIGH" : "Brightness: LOW", toggleBrightness, settingsMenu);
+  // About
+  menu.addMenuItem("About", showAbout, rootMenu);
+  menu.enterSubMenu(rootMenu);
 }
 ```
 
-## ⚙️ Customization
+### Main Menu Items
+
+- Sensors (submenu)
+  - Temperature (from DHT11)
+  - Humidity (from DHT11)
+  - Distance (from HC-SR04)
+- Settings (submenu)
+  - Sound: ON / OFF
+  - Brightness: HIGH / LOW
+- About
+
+### Dynamic Label Update Example
+
+```cpp
+void toggleSound() {
+  soundOn = !soundOn;
+  EEPROM.write(EEPROM_SOUND_ADDR, soundOn ? 1 : 0);
+  menu.setBeepEnabled(soundOn);
+  soundMenuItem->label = soundOn ? "Sound: ON" : "Sound: OFF";
+  menu.drawMenu();
+}
+```
+
+## ⚙️ Customization & Professional Code
 
 You can customize:
 
-* Fonts (`setTextSize`, `setCursor`)
-* Selector style (rounded corners, padding)
-* Sound feedback (buzzer or silent)
-* Brightness control (adjust contrast level)
+- Fonts (`setTextSize`, `setCursor`)
+- Selector style (rounded corners, padding)
+- Sound feedback (buzzer or silent)
+- Brightness control (adjust contrast level)
+
+All example and library code is now professionally commented for clarity and maintainability.
+
+## 🛠️ Arduino Uno & AVR Compatibility
+
+The dynamic menu system uses C-style linked lists and function pointers for full compatibility with Arduino Uno and other AVR boards. No STL or dynamic memory allocation is required.
 
 ## 📜 License
 
