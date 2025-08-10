@@ -44,11 +44,10 @@ enum ScreenState {
 ScreenState currentScreen = SCREEN_MENU;
 unsigned long lastUpdate = 0;
 
+
 // Menu items
 const char* mainMenu[] = {
-  "Temperature",
-  "Humidity",
-  "Distance",
+  "Sensors",
   "Settings",
   "About"
 };
@@ -57,6 +56,18 @@ const char* settingsMenu[] = {
   "Sound: ON",
   "Brightness: HIGH"
 };
+
+// Dynamic sensors submenu
+const char* sensorsMenu[3];
+int sensorsCount = 0;
+
+void updateSensorsMenu() {
+  sensorsCount = 0;
+  sensorsMenu[sensorsCount++] = "Temperature";
+  sensorsMenu[sensorsCount++] = "Humidity";
+  sensorsMenu[sensorsCount++] = "Distance";
+  // In a real scenario, you could detect available sensors and add them conditionally
+}
 
 void updateSettingsMenuLabels() {
   settingsMenu[0] = soundOn ? "Sound: ON" : "Sound: OFF";
@@ -80,7 +91,7 @@ void setup() {
 
   menu.begin();
   updateSettingsMenuLabels();
-  menu.setMenuItems(mainMenu, 5);
+  menu.setMenuItems(mainMenu, 3);
   menu.setCallback(onMainSelect);
   menu.setBackCallback(nullptr);
 }
@@ -152,7 +163,7 @@ void updateScreen() {
 
 void backToMain() {
   updateSettingsMenuLabels();
-  menu.setMenuItems(mainMenu, 5, false);
+  menu.setMenuItems(mainMenu, 3, false);
   menu.setCallback(onMainSelect);
   menu.setBackCallback(nullptr);
 }
@@ -166,18 +177,35 @@ void backToSettings() {
 
 void onMainSelect(int index) {
   switch (index) {
-    case 0: currentScreen = SCREEN_TEMP; break;
-    case 1: currentScreen = SCREEN_HUMID; break;
-    case 2: currentScreen = SCREEN_DIST; break;
-    case 3:
+    case 0: // Sensors submenu
+      updateSensorsMenu();
+      menu.setMenuItems(sensorsMenu, sensorsCount);
+      menu.setCallback(onSensorsSelect);
+      menu.setBackCallback(backToMain);
+      break;
+    case 1: // Settings
       updateSettingsMenuLabels();
       menu.setMenuItems(settingsMenu, 2);
       menu.setCallback(onSettingsSelect);
       menu.setBackCallback(backToMain);
       break;
-    case 4: currentScreen = SCREEN_ABOUT; break;
+    case 2: // About
+      currentScreen = SCREEN_ABOUT;
+      break;
   }
   lastUpdate = 0; // force refresh
+}
+
+void onSensorsSelect(int index) {
+  // Handle dynamic sensor selection
+  if (strcmp(sensorsMenu[index], "Temperature") == 0) {
+    currentScreen = SCREEN_TEMP;
+  } else if (strcmp(sensorsMenu[index], "Humidity") == 0) {
+    currentScreen = SCREEN_HUMID;
+  } else if (strcmp(sensorsMenu[index], "Distance") == 0) {
+    currentScreen = SCREEN_DIST;
+  }
+  lastUpdate = 0;
 }
 
 void onSettingsSelect(int index) {
